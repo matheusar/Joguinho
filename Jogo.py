@@ -3,7 +3,8 @@
 # Importando as bibliotecas necessárias.
 import pygame
 from os import path
-
+import pymunk
+import random
 # Estabelece a pasta que contem as figuras.
 img_dir = path.join(path.dirname(__file__), 'imags')
 
@@ -49,7 +50,17 @@ class Player(pygame.sprite.Sprite):
         # Centraliza embaixo da tela.
         self.rect.centerx = -100
         self.rect.bottom = HEIGHT
-    
+    def add_ball(space):
+        """Add a ball to the given space at a random position"""
+        mass = 1
+        radius = 14
+        inertia = pymunk.moment_for_circle(mass, 0, radius, (0,0))
+        body = pymunk.Body(mass, inertia)
+        x = random.randint(120,380)
+        body.position = (x, 550)
+        shape = pymunk.Circle(body, radius, (0,0))
+        space.add(body, shape)
+        return shape
 
 
 # Classe Jogador que representa a nave

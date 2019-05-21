@@ -1,197 +1,123 @@
-# -*- coding: utf-8 -*-
+"""Very basic example of using a sprite image to draw a shape more similar 
+how you would do it in a real game instead of the simple line drawings used 
+by the other examples. 
+"""
 
-# Importando as bibliotecas necessárias.
+__version__ = "$Id:$"
+__docformat__ = "reStructuredText"
+
+import math, random
+
 import pygame
-import random
-import time
+from pygame.locals import *
+from pygame.color import *
 from os import path
+import pymunk
+from pymunk import Vec2d
 
-# Estabelece a pasta que contem as figuras e sons.
-img_dir = path.join(path.dirname(__file__), 'img')
-snd_dir = path.join(path.dirname(__file__), 'snd')
-
-# Dados gerais do jogo.
-WIDTH = 480 # Largura da tela
-HEIGHT = 600 # Altura da tela
-FPS = 60 # Frames por segundo
-
-# Define algumas variáveis com as cores básicas
 WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
-RED = (255, 0, 0)
-GREEN = (0, 255, 0)
-BLUE = (0, 0, 255)
-YELLOW = (255, 255, 0)
+FPS = 60
 
-# Classe Jogador que representa a nave
-class Player(pygame.sprite.Sprite):
-    
-    # Construtor da classe.
-    def __init__(self):
-        
-        # Construtor da classe pai (Sprite).
-        pygame.sprite.Sprite.__init__(self)
-        
-        # Carregando a imagem de fundo.
-        player_img = pygame.image.load(path.join(img_dir, "playerShip1_orange.png")).convert()
-        self.image = player_img
-        
-        # Diminuindo o tamanho da imagem.
-        self.image = pygame.transform.scale(player_img, (50, 38))
-        
-        # Deixando transparente.
-        self.image.set_colorkey(BLACK)
-        
-        # Detalhes sobre o posicionamento.
-        self.rect = self.image.get_rect()
-        
-        # Centraliza embaixo da tela.
-        self.rect.centerx = WIDTH / 2
-        self.rect.bottom = HEIGHT - 10
-        
-        # Velocidade da nave
-        self.speedx = 0
-        
-        # Melhora a colisão estabelecendo um raio de um circulo
-        self.radius = 25
-    
-    # Metodo que atualiza a posição da navinha
-    def update(self):
-        self.rect.x += self.speedx
-        
-        # Mantem dentro da tela
-        if self.rect.right > WIDTH:
-            self.rect.right = WIDTH
-        if self.rect.left < 0:
-            self.rect.left = 0
-                    
-# Classe Mob que representa os meteoros
-class Mob(pygame.sprite.Sprite):
-    
-    # Construtor da classe.
-    def __init__(self):
-        
-        # Construtor da classe pai (Sprite).
-        pygame.sprite.Sprite.__init__(self)
-        
-        # Carregando a imagem de fundo.
-        mob_img = pygame.image.load(path.join(img_dir, "meteorBrown_med1.png")).convert()
-        
-        # Diminuindo o tamanho da imagem.
-        self.image = pygame.transform.scale(mob_img, (50, 38))
-        
-        # Deixando transparente.
-        self.image.set_colorkey(BLACK)
-        
-        # Detalhes sobre o posicionamento.
-        self.rect = self.image.get_rect()
-        
-        # Sorteia um lugar inicial em x
-        self.rect.x = random.randrange(WIDTH - self.rect.width)
-        # Sorteia um lugar inicial em y
-        self.rect.y = random.randrange(-100, -40)
-        # Sorteia uma velocidade inicial
-        self.speedx = random.randrange(-3, 3)
-        self.speedy = random.randrange(2, 9)
-        
-        # Melhora a colisão estabelecendo um raio de um circulo
-        self.radius = int(self.rect.width * .85 / 2)
-        
-    # Metodo que atualiza a posição da navinha
-    def update(self):
-        self.rect.x += self.speedx
-        self.rect.y += self.speedy
-        
-        # Se o meteoro passar do final da tela, volta para cima
-        if self.rect.top > HEIGHT + 10 or self.rect.left < -25 or self.rect.right > WIDTH + 20:
-            self.rect.x = random.randrange(WIDTH - self.rect.width)
-            self.rect.y = random.randrange(-100, -40)
-            self.speedx = random.randrange(-3, 3)
-            self.speedy = random.randrange(2, 9)
+img_dir = path.join(path.dirname(__file__), 'imags')
+
+def flipy(y):
+    """Small hack to convert chipmunk physics to pygame coordinates"""
+    return -y+600
+
+def main():
             
-# Classe Bullet que representa os tiros
-class Bullet(pygame.sprite.Sprite):
-    
-    # Construtor da classe.
-    def __init__(self, x, y):
-        
-        # Construtor da classe pai (Sprite).
-        pygame.sprite.Sprite.__init__(self)
-        
-        # Carregando a imagem de fundo.
-        bullet_img = pygame.image.load(path.join(img_dir, "laserRed16.png")).convert()
-        self.image = bullet_img
-        
-        # Deixando transparente.
-        self.image.set_colorkey(BLACK)
-        
-        # Detalhes sobre o posicionamento.
-        self.rect = self.image.get_rect()
-        
-        # Coloca no lugar inicial definido em x, y do constutor
-        self.rect.bottom = y
-        self.rect.centerx = x
-        self.speedy = -10
-
-    # Metodo que atualiza a posição da navinha
-    def update(self):
-        self.rect.y += self.speedy
-        
-        # Se o tiro passar do inicio da tela, morre.
-        if self.rect.bottom < 0:
-            self.kill()
-
-# Inicialização do Pygame.
-pygame.init()
-pygame.mixer.init()
-
-# Tamanho da tela.
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-
-# Nome do jogo
-pygame.display.set_caption("Navinha")
-
-# Variável para o ajuste de velocidade
-clock = pygame.time.Clock()
-
-# Carrega o fundo do jogo
-background = pygame.image.load(path.join(img_dir, 'starfield.png')).convert()
-background_rect = background.get_rect()
-
-# Carrega os sons do jogo
-pygame.mixer.music.load(path.join(snd_dir, 'tgfcoder-FrozenJam-SeamlessLoop.ogg'))
-pygame.mixer.music.set_volume(0.4)
-boom_sound = pygame.mixer.Sound(path.join(snd_dir, 'expl3.wav'))
-destroy_sound = pygame.mixer.Sound(path.join(snd_dir, 'expl6.wav'))
-pew_sound = pygame.mixer.Sound(path.join(snd_dir, 'pew.wav'))
-
-# Cria uma nave. O construtor será chamado automaticamente.
-player = Player()
-
-# Cria um grupo de todos os sprites e adiciona a nave.
-all_sprites = pygame.sprite.Group()
-all_sprites.add(player)
-
-# Cria um grupo só dos meteoros
-mobs = pygame.sprite.Group()
-
-# Cria um grupo para tiros
-bullets = pygame.sprite.Group()
-
-# Cria 8 meteoros e adiciona no grupo meteoros
-for i in range(8):
-    m = Mob()
-    all_sprites.add(m)
-    mobs.add(m)
-
-# Comando para evitar travamentos.
-try:
-    
-    # Loop principal.
-    pygame.mixer.music.play(loops=-1)
+    pygame.init()
+    screen = pygame.display.set_mode((600, 600))
+    clock = pygame.time.Clock()
     running = True
+    
+    ### Physics stuff
+    space = pymunk.Space()
+    space.gravity = Vec2d(0.0, -3000.0)
+    
+    ## logo
+    logo = pygame.image.load(path.join(img_dir, "motinha.png")).convert()
+    logos = []
+    logo_img = pygame.transform.scale(logo, (200, 160))
+    logo_img.set_colorkey(WHITE)
+    ### Static line
+    static_lines = [pymunk.Segment(space.static_body, (11.0, 280.0), (407.0, 246.0), 0.0)
+                    ,pymunk.Segment(space.static_body, (407.0, 246.0), (407.0, 343.0), 0.0)
+                    ]
+    for l in static_lines:
+        l.friction = 0.5
+    space.add(static_lines)
+
+    ticks_to_next_spawn = 10
+    
     while running:
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                running = False
+            elif event.type == KEYDOWN and event.key == K_ESCAPE:
+                running = False
+            
         
+        ticks_to_next_spawn -= 1
+        if ticks_to_next_spawn == 1:
+            ticks_to_next_spawn = 0
+            x = 20
+            y = 500
+            angle = math.pi
+            vs = [(-50,40), (50,40), (40,-75)]
+            mass = 10
+            moment = pymunk.moment_for_poly(mass, vs)
+            body = pymunk.Body(mass, moment)
+            shape = pymunk.Poly(body, vs)
+            shape.friction = 0.5
+            body.position = x, y
+            body.angle = angle
+            
+            space.add(body, shape)
+            logos.append(shape)
+       
+        ### Update physics
+        dt = 1.0/60.0
+        for x in range(1):
+            space.step(dt)
+            
+        ### Draw stuff
+        screen.fill(THECOLORS["white"])
+        background = pygame.image.load(path.join(img_dir, 'fundo.png')).convert()
+        background_rect = background.get_rect()
+        screen.blit(background, background_rect)
+
+        for logo_shape in logos:
+            # image draw
+            p = logo_shape.body.position
+            p = Vec2d(p.x, flipy(p.y))
+            
+            # we need to rotate 180 degrees because of the y coordinate flip
+            angle_degrees = math.degrees(logo_shape.body.angle) + 180 
+            rotated_logo_img = pygame.transform.rotate(logo_img, angle_degrees)
+            
+            offset = Vec2d(rotated_logo_img.get_size()) / 2.
+            p = p - offset
+            
+            screen.blit(rotated_logo_img, p)
+            
+            # debug draw
+            ps = [p.rotated(logo_shape.body.angle) + logo_shape.body.position for p in logo_shape.get_vertices()]
+            ps = [(p.x, flipy(p.y)) for p in ps]
+            ps += [ps[0]]
+            pygame.draw.lines(screen, THECOLORS["red"], False, ps, 1)
+           
+
+        for line in static_lines:
+            body = line.body
+            
+            pv1 = body.position + line.a.rotated(body.angle)
+            pv2 = body.position + line.b.rotated(body.angle)
+            p1 = pv1.x, flipy(pv1.y)
+            p2 = pv2.x, flipy(pv2.y)
+            pygame.draw.lines(screen, THECOLORS["lightgray"], False, [p1,p2], 2)
+
+        ### Flip screen
         # Ajusta a velocidade do jogo.
         clock.tick(FPS)
         
@@ -209,12 +135,6 @@ try:
                     player.speedx = -8
                 if event.key == pygame.K_RIGHT:
                     player.speedx = 8
-                # Se for um espaço atira!
-                if event.key == pygame.K_SPACE:
-                    bullet = Bullet(player.rect.centerx, player.rect.top)
-                    all_sprites.add(bullet)
-                    bullets.add(bullet)
-                    pew_sound.play()
                     
             # Verifica se soltou alguma tecla.
             if event.type == pygame.KEYUP:
@@ -227,33 +147,9 @@ try:
         # Depois de processar os eventos.
         # Atualiza a acao de cada sprite.
         all_sprites.update()
-        
-        # Verifica se houve colisão entre tiro e meteoro
-        hits = pygame.sprite.groupcollide(mobs, bullets, True, True)
-        for hit in hits: # Pode haver mais de um
-            # O meteoro e destruido e precisa ser recriado
-            destroy_sound.play()
-            m = Mob() 
-            all_sprites.add(m)
-            mobs.add(m)
-        
-        # Verifica se houve colisão entre nave e meteoro
-        hits = pygame.sprite.spritecollide(player, mobs, False, pygame.sprite.collide_circle)
-        if hits:
-            # Toca o som da colisão
-            boom_sound.play()
-            time.sleep(1) # Precisa esperar senão fecha
-            
-            running = False
-    
-        # A cada loop, redesenha o fundo e os sprites
-        screen.fill(BLACK)
-        screen.blit(background, background_rect)
-        all_sprites.draw(screen)
-        
-        # Depois de desenhar tudo, inverte o display.
         pygame.display.flip()
+        clock.tick(50)
+        pygame.display.set_caption("fps: " + str(clock.get_fps()))
         
-finally:
-    
-    pygame.quit()
+if __name__ == '__main__':
+    main()
