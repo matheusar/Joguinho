@@ -3,4 +3,4 @@
 Alunos:
 
 Matheus Amaral Ricardo: matheusar@al.insper.edu.br
-Gabriel Chinellato: 
+Gabriel Chinellato: gabriellcc@al.insper.edu.br
